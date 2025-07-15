@@ -6,6 +6,7 @@ import speech_recognition as sr
 import pyaudio
 import platform
 import numpy as np
+from modules.output import voice_assistant
 from config import CHANNELS, RATE, CHUNK, PAUSE_DURATION, OUTPUT_FILE_NAME
 
 class VoiceProcessing:
@@ -32,16 +33,16 @@ class VoiceProcessing:
             frames_per_buffer=CHUNK
         )
         
-        print("Adjusting for ambient noise... Please wait.")
+        voice_assistant.speak("Adjusting for ambient noise... Please wait.")
         ambient_data = []
         for _ in range(int(RATE / CHUNK * 5)):
             data = stream.read(CHUNK, exception_on_overflow=False)
             ambient_data.append(data)
         
         self.threshold = self.calculate_dynamic_threshold(ambient_data)
-        print(f"Dynamic silence threshold set to: {self.threshold:.2f}")
+        voice_assistant.speak(f"Dynamic silence threshold set to: {self.threshold:.2f}")
         
-        print(f"Listening... Speak now. (Recording stops after {PAUSE_DURATION}s pause)")
+        voice_assistant.speak("Listening... Speak now.")
         
         frames = []
         silent_chunks = 0
@@ -69,14 +70,14 @@ class VoiceProcessing:
                 if i % int(RATE / CHUNK) == 0:  
                     print(".", end="", flush=True)
             
-            print("\nProcessing speech...")
+            voice_assistant.speak("\nProcessing your speech, please wait...")
             
             stream.stop_stream()
             stream.close()
             p.terminate()
             
             if not frames or not speech_started:
-                print("Error: No speech detected.")
+                voice_assistant.speak("No speech detected.")
                 return None
             
             audio_data = sr.AudioData(b''.join(frames), RATE, 2)  
@@ -84,13 +85,14 @@ class VoiceProcessing:
             recognizer = sr.Recognizer()
             try:
                 text = recognizer.recognize_google(audio_data)
-                print("You said:", text)
+                voice_assistant.speak(f"You said:{text}")
                 return text
             except sr.UnknownValueError:
-                print("Error: Could not understand the audio.")
+                voice_assistant.speak("Could not understand the audio.")
                 return None
             except sr.RequestError as e:
-                print(f"Error: Could not connect to Google Speech Recognition service; {e}")
+                voice_assistant.speak("Could not connect to Google Speech Recognition service")
+                print(f"Request error: {e}")
                 return None
             except Exception as e:
                 print(f"Unexpected error: {e}")

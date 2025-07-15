@@ -1,6 +1,7 @@
 from modules.voice_input import VoiceProcessing
 from modules.intent_recognition import IntentRecognizer
 from modules.task_executor import TaskExecutor
+from modules.output import voice_assistant
 import os
 
 voice=VoiceProcessing()
@@ -9,7 +10,7 @@ if input_text:
 	recognizer = IntentRecognizer()
 	result = recognizer.recognize(input_text)
 	if result['entity'] == 'exit' and result['entity'] == "None":
-		print("Enter file name is in wrong format, Please try again.")
+		voice_assistant.speak("Enter file name is in wrong format, Please try again.") 
 		exit(1)
 	executor = TaskExecutor()
 	if result['intent'] == "create_file":
@@ -29,4 +30,4 @@ if input_text:
 	elif result['intent'] == "exit":
 		executor.exit_program()
 	else:
-		print("I think you enter a wrong command")
+		voice_assistant.speak("I think you enter a wrong command")

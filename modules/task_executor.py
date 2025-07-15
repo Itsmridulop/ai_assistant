@@ -9,6 +9,9 @@ import time
 from pathlib import Path
 from urllib.parse import quote
 import re
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from modules.output import voice_assistant
 
 class TaskExecutor:
     def __init__(self):
@@ -35,24 +38,29 @@ class TaskExecutor:
     def create_file(self, filename):
         """Create a new file with optional content"""
         try:
+            voice_assistant.speak(f"Creating file")
             self._validate_path(filename)
             os.makedirs(os.path.dirname(filename), exist_ok=True)
             with open(filename, 'w') as f:
                 f.write(" ")
-            print(f"Created file: {filename}")
+            voice_assistant.speak(f"file created successfully")
             exit(0)
         except (PermissionError, OSError, ValueError) as e:
-            print(f"Error creating file: {str(e)}")
+            voice_assistant.speak("Some Error occured in creating file")
+            print(f"{str(e)}")
             exit(1)
     
     def create_folder(self, foldername):
         """Create a new directory"""
         try:
+            voice_assistant.speak(f"Creating folder")
             self._validate_path(foldername)
             os.makedirs(foldername, exist_ok=True)
-            print(f"Created folder: {foldername}")
+            voice_assistant.speak(f"folder Created successfully")
         except (PermissionError, OSError, ValueError) as e:
-            print(f"Error creating folder: {str(e)}")
+            voice_assistant.speak("Some Error occured in creating folder")
+            print(f"{str(e)}")
+            exit(1)
     
     def open_application(self, app_name):
         """Open applications with cross-platform support"""
@@ -84,10 +92,10 @@ class TaskExecutor:
             if app_key in app_map:
                 command = app_map[app_key].get(self.os_type)
                 if command and shutil.which(command[0]):
+                    voice_assistant.speak("Opening chrome")
                     subprocess.Popen(command, start_new_session=True)
-                    print(f"Opened {app_name}")
                     exit(0)
-                print(f"Error: {app_name} not found on {self.os_type}")
+                voice_assistant.speak("Error {app_name} not found on {self.os_type}")
                 exit(1)
             
             if self.os_type == 'windows':
@@ -106,24 +114,26 @@ class TaskExecutor:
                     print(f"Opened {app_name}")
                     exit(0)
             
-            print(f"Error: Application {app_name} not found")
+            voice_assistant.speak(f"Error: Application {app_name} not found")
             exit(1)
         except Exception as e:
-            print(f"Error opening application: {str(e)}")
+            voice_assistant.speak("Error opening application")
+            print(f"Error: {str(e)}")
             exit(1)
     
     def web_search(self, query):
         """Perform web search using default browser"""
         try:
             if not query.strip():
-                print("Error: Search query cannot be empty")
+                voice_assistant.speak("Search query cannot be empty")
                 exit(1)
             search_url = f"https://www.google.com/search?q={quote(query)}"
             webbrowser.open(search_url)
-            print(f"Searching for: {query}")
+            voice_assistant.speak(f"Searching for: {query}")
             exit(0)
         except Exception as e:
-            print(f"Error performing web search: {str(e)}")
+            voice_assistant.speak("Error performing web search")
+            print(f"{str(e)}")
             exit(1)
     
     def download_file(self, url, filename=None):
@@ -155,26 +165,31 @@ class TaskExecutor:
         try:
             cmd_map = {
                 'shutdown': {
+                    "msz": 'shutingdown',
                     'windows': ['shutdown', '/s', '/t', '0'],
                     'darwin': ['osascript', '-e', 'tell app "System sausystem to shut down'],
                     'linux': ['sudo', 'shutdown', 'now']
                 },
                 'restart': {
+                    "msz": 'restarting',
                     'windows': ['shutdown', '/r', '/t', '0'],
                     'darwin': ['osascript', '-e', 'tell app "System Events" to restart'],
                     'linux': ['sudo', 'reboot']
                 },
                 'sleep': {
+                    "msz": 'sleeping',
                     'windows': ['rundll32.exe', 'powrprof.dll,SetSuspendState', '0,1,0'],
                     'darwin': ['pmset', 'sleepnow'],
                     'linux': ['systemctl', 'suspend']
                 },
                 'increase volume': {
+                    'msz': 'increasing volume',
                     'windows': None,
                     'darwin': ['osascript', '-e', 'set volume output volume ((output volume of (get volume settings)) + 10)'],
                     'linux': ['pactl', 'set-sink-volume', '@DEFAULT_SINK@', '+10%']
                 },
                 'decrease volume': {
+                    'msz': 'decreasing volume',
                     'windows': None,
                     'darwin': ['osascript', '-e', 'set volume output volume ((output volume of (get volume settings)) - 10)'],
                     'linux': ['pactl', 'set-sink-volume', '@DEFAULT_SINK@', '-10%']
@@ -186,6 +201,7 @@ class TaskExecutor:
                 cmd = cmd_map[cmd_key].get(self.os_type)
                 if cmd and shutil.which(cmd[0]):
                     try:
+                        voice_assistant.speak(f"{cmd_map[cmd_key].get('msz')}")
                         subprocess.run(cmd, check=True, capture_output=True, text=True)
                         print(f"Executed: {command}")
                         exit(0)
@@ -202,23 +218,27 @@ class TaskExecutor:
                     exit(1)
                 if shutil.which(cmd_args[0]):
                     result = subprocess.run(cmd_args, capture_output=True, text=True)
-                    print(f"Command executed. Output: {result.stdout[:100]}")
+                    voice_assistant.speak("Command executed.")
+                    print(f"Output: {result.stdout[:100]}")
                     exit(0)
-                print(f"Error: Command {cmd_args[0]} not found")
+                voice_assistant.speak(f"Error: Command {cmd_args[0]} not found")
                 exit(1)
             except Exception as e:
-                print(f"Error executing command: {str(e)}")
+                voice_assistant.speak("Error executing command")
+                print(f'{str(e)}')
                 exit(1)
         except Exception as e:
-            print(f"Error executing system command: {str(e)}")
+            voice_assistant.speak("Error executing system command")
+            print(f"Error: {str(e)}")
             exit(1)
     
     def exit_program(self):
         """Clean exit from the program"""
         try:
-            print("Exiting the program...")
+            voice_assistant.speak("Exiting")
             time.sleep(1)  
             sys.exit(0)
         except Exception as e:
-            print(f"Error during exit: {str(e)}")
+            voice_assistant.speak("Error during exit")
+            print(f"Error: {str(e)}")
             sys.exit(1)
