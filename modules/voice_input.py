@@ -7,55 +7,42 @@ import pyaudio
 import platform
 import numpy as np
 from modules.output import voice_assistant
-from config import CHANNELS, RATE, CHUNK, PAUSE_DURATION, OUTPUT_FILE_NAME
+from config import Config
 
-class VoiceProcessing:
+class VoiceProcessing(Config):
     def __init__(self):
-        self.threshold = None
-
-    def calculate_dynamic_threshold(self, ambient_data):
-        ambient_array = np.frombuffer(b''.join(ambient_data), dtype=np.int16)
-        avg_amplitude = np.abs(ambient_array).mean()
-        return avg_amplitude * 2.0
+        super().__init__()
 
     def is_silent(self, data, threshold):
+        """Check if audio chunk is silent based on dynamic threshold."""
         audio_data = np.frombuffer(data, dtype=np.int16)
         avg_amplitude = np.abs(audio_data).mean()
         return avg_amplitude < threshold
 
-    def speech_to_text(self):
+    def speech_to_text(self, threshold):
+        """Convert speech to text, stopping after a 1.5s pause."""
         p = pyaudio.PyAudio()
         stream = p.open(
             format=pyaudio.paInt16,
-            channels=CHANNELS,
-            rate=RATE,
+            channels=self.CHANNELS,
+            rate=self.RATE,
             input=True,
-            frames_per_buffer=CHUNK
+            frames_per_buffer=self.CHUNK
         )
-        
-        voice_assistant.speak("Adjusting for ambient noise... Please wait.")
-        ambient_data = []
-        for _ in range(int(RATE / CHUNK * 5)):
-            data = stream.read(CHUNK, exception_on_overflow=False)
-            ambient_data.append(data)
-        
-        self.threshold = self.calculate_dynamic_threshold(ambient_data)
-        voice_assistant.speak(f"Dynamic silence threshold set to: {self.threshold:.2f}")
-        
-        voice_assistant.speak("Listening... Speak now.")
+    
+        voice_assistant.speak("Hello! How can I help?")
         
         frames = []
         silent_chunks = 0
-        max_silent_chunks = int(PAUSE_DURATION / 0.05) 
-        max_duration_chunks = int(10 / 0.05)  
+        max_silent_chunks = int(self.PAUSE_DURATION / 0.05)
         speech_started = False
         
         try:
-            for i in range(max_duration_chunks):
-                data = stream.read(CHUNK, exception_on_overflow=False)
+            while True:
+                data = stream.read(self.CHUNK, exception_on_overflow=False)
                 frames.append(data)
-                
-                silent = self.is_silent(data, self.threshold)
+
+                silent = self.is_silent(data, threshold)
                 if silent:
                     if speech_started:
                         silent_chunks += 1
@@ -67,10 +54,8 @@ class VoiceProcessing:
                         speech_started = True
                     silent_chunks = 0
                 
-                if i % int(RATE / CHUNK) == 0:  
-                    print(".", end="", flush=True)
-            
-            voice_assistant.speak("\nProcessing your speech, please wait...")
+        
+            voice_assistant.speak("Processing your speech, please wait...")
             
             stream.stop_stream()
             stream.close()
@@ -80,19 +65,18 @@ class VoiceProcessing:
                 voice_assistant.speak("No speech detected.")
                 return None
             
-            audio_data = sr.AudioData(b''.join(frames), RATE, 2)  
+            audio_data = sr.AudioData(b''.join(frames), self.RATE, 2)
             
             recognizer = sr.Recognizer()
             try:
                 text = recognizer.recognize_google(audio_data)
-                voice_assistant.speak(f"You said:{text}")
+                voice_assistant.speak(f"You said: {text}")
                 return text
             except sr.UnknownValueError:
                 voice_assistant.speak("Could not understand the audio.")
                 return None
             except sr.RequestError as e:
-                voice_assistant.speak("Could not connect to Google Speech Recognition service")
-                print(f"Request error: {e}")
+                voice_assistant.speak("Could not connect to Google Speech Recognition service.")
                 return None
             except Exception as e:
                 print(f"Unexpected error: {e}")
@@ -105,14 +89,16 @@ class VoiceProcessing:
             p.terminate()
             return None
 
-    def take_speech(self):
-        print(f"Running on {platform.system()} {platform.release()}")
-        result = self.speech_to_text()
+    def take_speech(self, threshold):
+        """Run the speech-to-text process and save the result."""
+        result = self.speech_to_text(threshold)
         
         if result:
-            with open(OUTPUT_FILE_NAME, "a", encoding="utf-8") as f:
+            with open(self.OUTPUT_FILE_NAME, "a", encoding="utf-8") as f:
                 f.write(result + '\n')
-            print(f"Transcription saved to {OUTPUT_FILE_NAME}")
+            print(f"Transcription saved to {self.OUTPUT_FILE_NAME}")
             return result
         else:
             print("No transcription to save.")
+
+voice = VoiceProcessing()

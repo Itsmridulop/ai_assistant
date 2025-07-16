@@ -1,16 +1,16 @@
 import os
 import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import subprocess
 import webbrowser
 import requests
 import platform
 import shutil
 import time
+import re
 from pathlib import Path
 from urllib.parse import quote
-import re
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 from modules.output import voice_assistant
 
 class TaskExecutor:
@@ -44,7 +44,6 @@ class TaskExecutor:
             with open(filename, 'w') as f:
                 f.write(" ")
             voice_assistant.speak(f"file created successfully")
-            exit(0)
         except (PermissionError, OSError, ValueError) as e:
             voice_assistant.speak("Some Error occured in creating file")
             print(f"{str(e)}")
@@ -94,7 +93,6 @@ class TaskExecutor:
                 if command and shutil.which(command[0]):
                     voice_assistant.speak("Opening chrome")
                     subprocess.Popen(command, start_new_session=True)
-                    exit(0)
                 voice_assistant.speak("Error {app_name} not found on {self.os_type}")
                 exit(1)
             
@@ -102,17 +100,14 @@ class TaskExecutor:
                 if shutil.which(app_name):
                     subprocess.Popen([app_name], start_new_session=True)
                     print(f"Opened {app_name}")
-                    exit(0)
             elif self.os_type == 'darwin':
                 if subprocess.run(['mdfind', f'kMDItemKind == "Application" && kMDItemFSName == "{app_name}.app"'], capture_output=True, text=True).returncode == 0:
                     subprocess.Popen(['open', '-a', app_name])
                     print(f"Opened {app_name}")
-                    exit(0)
             else: 
                 if shutil.which(app_name):
                     subprocess.Popen([app_name], start_new_session=True)
                     print(f"Opened {app_name}")
-                    exit(0)
             
             voice_assistant.speak(f"Error: Application {app_name} not found")
             exit(1)
@@ -130,7 +125,6 @@ class TaskExecutor:
             search_url = f"https://www.google.com/search?q={quote(query)}"
             webbrowser.open(search_url)
             voice_assistant.speak(f"Searching for: {query}")
-            exit(0)
         except Exception as e:
             voice_assistant.speak("Error performing web search")
             print(f"{str(e)}")
@@ -168,13 +162,13 @@ class TaskExecutor:
                     "msz": 'shutingdown',
                     'windows': ['shutdown', '/s', '/t', '0'],
                     'darwin': ['osascript', '-e', 'tell app "System sausystem to shut down'],
-                    'linux': ['sudo', 'shutdown', 'now']
+                    'linux': ['shutdown', 'now']
                 },
                 'restart': {
                     "msz": 'restarting',
                     'windows': ['shutdown', '/r', '/t', '0'],
                     'darwin': ['osascript', '-e', 'tell app "System Events" to restart'],
-                    'linux': ['sudo', 'reboot']
+                    'linux': ['reboot']
                 },
                 'sleep': {
                     "msz": 'sleeping',
@@ -204,7 +198,6 @@ class TaskExecutor:
                         voice_assistant.speak(f"{cmd_map[cmd_key].get('msz')}")
                         subprocess.run(cmd, check=True, capture_output=True, text=True)
                         print(f"Executed: {command}")
-                        exit(0)
                     except subprocess.CalledProcessError as e:
                         print(f"Error: Command {command} failed, may require elevated privileges: {str(e)}")
                         exit(1)
@@ -220,7 +213,6 @@ class TaskExecutor:
                     result = subprocess.run(cmd_args, capture_output=True, text=True)
                     voice_assistant.speak("Command executed.")
                     print(f"Output: {result.stdout[:100]}")
-                    exit(0)
                 voice_assistant.speak(f"Error: Command {cmd_args[0]} not found")
                 exit(1)
             except Exception as e:
@@ -242,3 +234,5 @@ class TaskExecutor:
             voice_assistant.speak("Error during exit")
             print(f"Error: {str(e)}")
             sys.exit(1)
+
+executor = TaskExecutor()

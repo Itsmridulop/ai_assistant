@@ -4,11 +4,14 @@ import re
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
-from config import MODEL_DIR
+from config import Config
 from modules.output import voice_assistant
 
-class IntentRecognizer:
-    def load_model_and_tokenizer(self, model_dir=MODEL_DIR):
+class IntentRecognizer(Config):
+    def __init__(self):
+        super().__init__()
+
+    def load_model_and_tokenizer(self, model_dir):
         required_files = [
             "config.json", "model.safetensors", "special_tokens_map.json",
             "tokenizer.json", "tokenizer_config.json", "vocab.txt"
@@ -52,13 +55,15 @@ class IntentRecognizer:
         }
     
         try:
-            model, tokenizer, classifier = self.load_model_and_tokenizer()
+            model, tokenizer, classifier = self.load_model_and_tokenizer(self.MODEL_DIR)
         except FileNotFoundError as e:
-            print(e)
+            # print(e)
             voice_assistant.speak("Please upload the model directory files.")
     
-        print("\nIntent Recognition Results:")
+        # print("\nIntent Recognition Results:")
         result = self.process_input(input_text, classifier, label_map, regex_patterns)
-        print(f"Intent: {result['intent']}, Entity: {result['entity']}, Confidence: {result['confidence']}")
-        print("-" * 50)
+        # print(f"Intent: {result['intent']}, Entity: {result['entity']}, Confidence: {result['confidence']}")
+        # print("-" * 50)
         return result
+    
+recognizer = IntentRecognizer()
