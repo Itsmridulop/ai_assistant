@@ -95,7 +95,7 @@ class CypherAi(Config):
             if self.is_silent(latest_chunk, self.SILENCE_THRESHOLD):
                 self.logger.debug("Audio is silent, skipping wake word detection")
                 return False
-
+            logging.info("Detecting wake word...")
             audio_array = np.frombuffer(b''.join(list(self.audio_buffer)), dtype=np.int16)
             audio_data_sr = sr.AudioData(
                 audio_array.tobytes(),
@@ -131,7 +131,7 @@ class CypherAi(Config):
                 format=self.FORMAT,
                 channels=self.CHANNELS,
                 rate=self.RATE,
-                input=True,
+                input=True, 
                 frames_per_buffer=self.CHUNK,
                 stream_callback=self.audio_callback,
                 start=True
@@ -144,7 +144,6 @@ class CypherAi(Config):
             self.cleanup()
             return
 
-        voice_assistant.speak("Assistant started in background mode")
         try:
             threshold_update_time = time.time()
             while self.is_running:
@@ -154,14 +153,16 @@ class CypherAi(Config):
 
                 if self.detect_wake_word():
                     self.logger.info("Wake word detected, listening for command...")
-                    command = voice.take_speech(self.SILENCE_THRESHOLD)
-                    if command:
-                        self.logger.info(f"Command received: {command}")
-                        result = recognizer.recognize(command)
-                        if result['entity'] == 'exit' and result['entity'] == "None":
-                            voice_assistant.speak("Enter file name is in wrong format, Please try again.")
-                        else:
-                            self.process_command(result)
+                    voice_assistant.speak("Hello! How can I help?")
+                    while True:
+                        command = voice.take_speech(self.SILENCE_THRESHOLD)
+                        if command:
+                            self.logger.info(f"Command received: {command}")
+                            result = recognizer.recognize(command)
+                            if result['entity'] == 'exit' and result['entity'] == "None":
+                                voice_assistant.speak("Enter file name is in wrong format, Please try again.")
+                            else:
+                                self.process_command(result)
                 
                 time.sleep(0.1)
                 

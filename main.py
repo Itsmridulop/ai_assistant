@@ -7,3 +7,4 @@ try:
     cypher.start()
 except Exception as e:
     print(f"Error starting background service: {e}")
+

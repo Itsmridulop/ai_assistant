@@ -93,8 +93,9 @@ class TaskExecutor:
                 if command and shutil.which(command[0]):
                     voice_assistant.speak("Opening chrome")
                     subprocess.Popen(command, start_new_session=True)
-                voice_assistant.speak("Error {app_name} not found on {self.os_type}")
-                exit(1)
+                else:
+                    voice_assistant.speak("Error {app_name} not found on {self.os_type}")
+                    exit(1)
             
             if self.os_type == 'windows':
                 if shutil.which(app_name):
@@ -201,8 +202,9 @@ class TaskExecutor:
                     except subprocess.CalledProcessError as e:
                         print(f"Error: Command {command} failed, may require elevated privileges: {str(e)}")
                         exit(1)
-                print(f"Error: Command {command} not supported or dependency missing on {self.os_type}")
-                exit(1)
+                else:
+                    print(f"Error: Command {command} not supported or dependency missing on {self.os_type}")
+                    exit(1)
             
             try:
                 cmd_args = command.split()

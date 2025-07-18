@@ -4,7 +4,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import speech_recognition as sr
 import pyaudio
-import platform
 import numpy as np
 from modules.output import voice_assistant
 from config import Config
@@ -30,7 +29,6 @@ class VoiceProcessing(Config):
             frames_per_buffer=self.CHUNK
         )
     
-        voice_assistant.speak("Hello! How can I help?")
         
         frames = []
         silent_chunks = 0
@@ -39,6 +37,7 @@ class VoiceProcessing(Config):
         
         try:
             while True:
+                # print("Listening...")
                 data = stream.read(self.CHUNK, exception_on_overflow=False)
                 frames.append(data)
 
@@ -73,7 +72,7 @@ class VoiceProcessing(Config):
                 voice_assistant.speak(f"You said: {text}")
                 return text
             except sr.UnknownValueError:
-                voice_assistant.speak("Could not understand the audio.")
+                # voice_assistant.speak("Could not understand the audio.")
                 return None
             except sr.RequestError as e:
                 voice_assistant.speak("Could not connect to Google Speech Recognition service.")
