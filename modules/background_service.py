@@ -13,6 +13,8 @@ from modules.output import voice_assistant
 from modules.voice_input import voice
 from modules.task_executor import executor
 from modules.intent_recognition import recognizer
+from modules.assistant_gui import AssistantGUI
+from PyQt5.QtWidgets import QApplication
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 sys.tracebacklimit = 0
@@ -28,7 +30,6 @@ class CypherAi(Config):
         self.logger = logging.getLogger(__name__)
 
         self.audio_buffer = deque(maxlen=int(self.RATE * 10 / self.CHUNK)) 
-        
         self.is_listening = False
         self.is_running = True
         self.stream_active = False
@@ -37,6 +38,12 @@ class CypherAi(Config):
         self.stream = None
         self.recognizer = sr.Recognizer()
         
+        # Initialize GUI
+        self.app = QApplication(sys.argv)
+        self.gui = AssistantGUI()
+        self.gui.hide()  # Hide GUI initially
+        self.logger.info("GUI initialized and hidden")
+
         self.initialize_silence_threshold()
 
     def initialize_silence_threshold(self):
@@ -52,7 +59,7 @@ class CypherAi(Config):
             self.logger.info("Temporary audio stream opened for threshold calculation")
             
             ambient_data = []
-            for _ in range(int(self.RATE / self.CHUNK * 5)):  # 5 seconds of ambient noise
+            for _ in range(int(self.RATE / self.CHUNK * 5)):
                 data = temp_stream.read(self.CHUNK, exception_on_overflow=False)
                 ambient_data.append(data)
             
@@ -66,12 +73,10 @@ class CypherAi(Config):
             self.SILENCE_THRESHOLD = 300
             voice_assistant.speak("Failed to initialize audio threshold")
 
-
     def is_silent(self, data, threshold):
         """Check if audio data is silent based on the threshold"""
         if not data:
             return True
-            
         try:
             audio_data = np.frombuffer(data, dtype=np.int16)
             avg_amplitude = np.abs(audio_data).mean()
@@ -108,7 +113,6 @@ class CypherAi(Config):
             try:
                 detected_text = self.recognizer.recognize_google(
                     audio_data_sr, 
-                    # language="en-US",
                     show_all=False
                 ).lower().strip()
                 
@@ -147,17 +151,23 @@ class CypherAi(Config):
         try:
             threshold_update_time = time.time()
             while self.is_running:
+                self.app.processEvents()  
                 if time.time() - threshold_update_time > 60:
                     self.update_silence_threshold()
                     threshold_update_time = time.time()
 
                 if self.detect_wake_word():
-                    self.logger.info("Wake word detected, listening for command...")
+                    self.logger.info("Wake word detected, showing GUI and listening for command...")
+                    self.gui.set_state("wake_detected")
+                    self.gui.show()
                     voice_assistant.speak("Hello! How can I help?")
+                    self.is_listening = True
                     while True:
+                        self.gui.set_state("listening")
                         command = voice.take_speech(self.SILENCE_THRESHOLD)
                         if command:
                             self.logger.info(f"Command received: {command}")
+                            self.gui.set_state("processing")
                             result = recognizer.recognize(command)
                             if result['entity'] == 'exit' and result['entity'] == "None":
                                 voice_assistant.speak("Enter file name is in wrong format, Please try again.")
@@ -211,29 +221,49 @@ class CypherAi(Config):
             if self.audio:
                 self.audio.terminate()
                 
-            self.logger.info("Background assistant stopped")
+            self.gui.hide()
+            self.gui.close()
+            self.app.quit()
+            self.logger.info("GUI and audio resources cleaned up")
             voice_assistant.speak("Assistant stopped")
         except Exception as e:
             self.logger.error(f"Cleanup error: {e}")
 
     def process_command(self, result):
-        """Placeholder for your process_command implementation"""
-        if result['intent'] == "create_file":
-            executor.create_file(os.path.join(executor.download_dir, result['entity']))
-        elif result['intent'] == "create_folder":
-            executor.create_folder(os.path.join(executor.download_dir, result['entity']))
-        elif result['intent'] == "open_application":
-            executor.open_application('browser')
-        elif result['intent'] == "web_search":
-            executor.web_search(result['entity'])
-        elif result['intent'] == "download_file":
-            executor.download_file(result['entity'])
-        elif result['intent'] == "system_command":
-            executor.system_command(result['entity'])
-        elif result['intent'] == "exit":
-            self.cleanup()
-            executor.exit_program()
-        else:
-            voice_assistant.speak("I think you enter a wrong command")
+        """Process the recognized command and update GUI state"""
+        try:
+            if result['intent'] == "create_file":
+                self.gui.set_state("processing")
+                executor.create_file(os.path.join(executor.download_dir, result['entity']))
+            elif result['intent'] == "create_folder":
+                self.gui.set_state("processing")
+                executor.create_folder(os.path.join(executor.download_dir, result['entity']))
+            elif result['intent'] == "open_application":
+                self.gui.set_state("processing")
+                executor.open_application('browser')
+            elif result['intent'] == "web_search":
+                self.gui.set_state("processing")
+                executor.web_search(result['entity'])
+            elif result['intent'] == "download_file":
+                self.gui.set_state("processing")
+                executor.download_file(result['entity'])
+            elif result['intent'] == "system_command":
+                self.gui.set_state("processing")
+                executor.system_command(result['entity'])
+            elif result['intent'] == "exit":
+                self.cleanup()
+                executor.exit_program()
+                self.is_listening = False
+                self.is_running = False
+            else:
+                self.gui.set_state("speaking")
+                voice_assistant.speak("I think you entered a wrong command")
+        except Exception as e:
+            self.logger.error(f"Error processing command: {e}")
+            self.gui.set_state("speaking")
+            voice_assistant.speak("An error occurred while processing the command")
+            self.gui.set_state("idle")
+            self.gui.hide()
+            self.is_listening = False
 
 cypher = CypherAi()
