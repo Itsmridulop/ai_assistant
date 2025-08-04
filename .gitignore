@@ -1,6 +1,4 @@
-.env
+.venv
 __pycache__
-fine_tuned_intent_model
-config.py
-speech_output.txt
-assistant.log
+.env
+memory/
