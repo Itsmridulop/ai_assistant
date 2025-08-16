@@ -17,6 +17,7 @@ shell_team = Team(
         "You can execute system commands, file management, process control",
         "You work with command-line tools and system administration tasks",
         "You can also use keyboard shortcuts to perform actions",
+        "You are also ablle to handle os level operations"
     ],
     mode="route",
     members=[shell_agent, keyboard_agent],

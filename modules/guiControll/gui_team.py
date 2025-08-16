@@ -15,7 +15,8 @@ gui_team = Team(
     instructions=[
         "You handle all GUI-related tasks and visual interface interactions",
         "You can automate desktop applications, manage windows, click buttons",
-        "You work with visual elements and desktop automation"
+        "You work with visual elements and desktop automation",
+        "You can search for any information which is available on the web",
     ],
     mode="route",
     members=[web_agent, app_agent],
