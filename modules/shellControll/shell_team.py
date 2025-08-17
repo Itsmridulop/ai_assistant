@@ -11,7 +11,6 @@ shell_team = Team(
     name="Shell Team",
     model=Gemini(id="gemini-1.5-flash-latest", temperature=0, api_key=os.getenv("GOOGLE_API_KEY")),
     description="Specialized team for executing shell commands and system operations",
-    role="Execute shell commands, file operations, system tasks, and terminal-based operations",
     instructions=[
         "You handle all shell commands and terminal operations",
         "You can execute system commands, file management, process control",

@@ -11,7 +11,6 @@ gui_team = Team(
     name="GUI Team",
     model=Gemini(id="gemini-2.5-flash-lite", temperature=0, api_key=os.getenv("GOOGLE_API_KEY")),
     description="Specialized team for GUI automation and visual interface interactions",
-    role="Handle GUI automation, window management, and visual interface tasks",
     instructions=[
         "You handle all GUI-related tasks and visual interface interactions",
         "You can automate desktop applications, manage windows, click buttons",
